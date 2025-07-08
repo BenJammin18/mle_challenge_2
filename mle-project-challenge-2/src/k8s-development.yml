@@ -16,6 +16,7 @@ spec:
       containers:
       - name: api-dev
         image: api-dev:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 5005
 ---

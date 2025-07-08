@@ -1,103 +1,140 @@
 # Sound Realty House Price API
 
-## Overview
-This project provides a robust, minimal, and unified deployment for the Sound Realty House Price Prediction API. All code and configuration now reside in the `src/` directory. You can deploy in development or production mode, and choose between local, Docker, or Kubernetes deployment—all with a single script.
+A REST API for predicting house prices in the Seattle area using machine learning.
 
-## Directory Structure
-```
-src/
-  app_development.py      # Flask API (development)
-  app_production.py       # Flask API (production)
-  requirements.txt        # Python dependencies
-  docker-compose.yml      # Docker Compose config
-  nginx.conf              # NGINX reverse proxy config
-  prometheus.yml          # Prometheus config
-  k8s-development.yml    # Kubernetes manifest (dev)
-  k8s-production.yml     # Kubernetes manifest (prod)
-  deploy.sh               # Unified deployment script
-  test_api.py             # Unified API test script (use this, test_api_unified.py is obsolete)
+## Quick Start
 
-data/
-  kc_house_data.csv       # Main dataset
-  zipcode_demographics.csv# Demographics
-  future_unseen_examples.csv # Test data
+### 1. Prerequisites
+- **Local**: Python 3.8+
+- **Docker**: Docker and Docker Compose
+- **Kubernetes**: kubectl and minikube
 
-model/
-  model.pkl               # Trained model
-  model_features.json     # Model features
-  model_evaluation.json   # Model evaluation
+### 2. Deploy the API
 
-util/
-  feature_eval.py         # Feature evaluation script
-  feature_recommendations.json # Feature recommendations
-```
+Navigate to the project directory and run:
 
-## Deployment
-
-### Prerequisites
-- Python 3.8+
-- Docker & Docker Compose (for Docker method)
-- kubectl (for Kubernetes method)
-
-### Usage
-From the project root:
-
-```
+```bash
 cd src
-./deploy.sh [dev|prod] [local|docker|k8s] [status|stop|test]
+./deploy.sh [MODE] [METHOD]
 ```
-- `dev` or `prod`: Choose API mode (default: dev)
-- `local`, `docker`, or `k8s`: Choose deployment method (default: local)
-- `status`, `stop`, `test`: Optional actions
 
-#### Examples
-- Start dev API locally: `./deploy.sh dev local`
-- Start prod API in Docker: `./deploy.sh prod docker`
-- Start dev API on Kubernetes: `./deploy.sh dev k8s`
-- Check status: `./deploy.sh dev docker status`
-- Stop services: `./deploy.sh prod k8s stop`
-- Test endpoints: `./deploy.sh dev local test`
+**Options:**
+- `MODE`: `dev` (default) or `prod`
+- `METHOD`: `local` (default), `docker`, or `k8s`
 
-## API Documentation
-- Swagger UI available at: `http://localhost:5005/docs` (dev) or `http://localhost:5006/docs` (prod)
+**Examples:**
+```bash
+./deploy.sh                    # Development mode locally
+./deploy.sh prod docker        # Production mode with Docker
+./deploy.sh dev k8s           # Development mode on Kubernetes
+```
 
-## Monitoring & Observability
-- **Prometheus**: [http://localhost:9090](http://localhost:9090)
-- **Grafana**: [http://localhost:3000](http://localhost:3000)
+The API will be available at: **http://localhost:5005**
 
-### Grafana & Prometheus Integration
-- Prometheus is configured in `src/prometheus.yml` and scrapes both dev and prod API endpoints.
-- Grafana default login: `admin` / `admin`
+### 3. Test the API
 
-#### Connect Prometheus as a Data Source
-1. Open Grafana in your browser.
-2. Go to **Configuration > Data Sources**.
-3. Click **Add data source** and select **Prometheus**.
-4. Set URL to `http://prometheus:9090` (for Docker) or `http://localhost:9090` (for local).
-5. Click **Save & Test**.
+```bash
+./deploy.sh [MODE] [METHOD] test
+```
 
-#### Import a Dashboard
-1. Go to **Create > Import**.
-2. Enter a dashboard ID or upload a JSON file.
-3. Select Prometheus as the data source.
-4. Click **Import**.
+### 4. Stop the API
 
-- Prometheus and Grafana are started by default in Docker Compose.
-- For custom dashboards, see [Grafana Dashboards](https://grafana.com/grafana/dashboards/).
+```bash
+./deploy.sh [MODE] [METHOD] stop
+```
 
-## Scaling Guide
+## API Usage
 
-### Docker Compose
-- Increase `replicas` by adding more API services in `docker-compose.yml`.
-- Use a load balancer (e.g., NGINX) to distribute traffic.
+### Health Check
+```bash
+curl http://localhost:5005/health
+```
+
+### Predict House Price
+```bash
+curl -X POST http://localhost:5005/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "sqft_living": 1800,
+    "sqft_lot": 5000,
+    "floors": 1,
+    "sqft_above": 1800,
+    "sqft_basement": 0,
+    "zipcode": "98103"
+  }'
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "predicted_price": 537100.0,
+  "currency": "USD",
+  "zipcode": "98103"
+}
+```
+
+### API Documentation
+Interactive documentation is available at:
+- **Development**: http://localhost:5005/apidocs
+- **Production**: http://localhost:5005/apidocs
+
+## Deployment Methods
+
+### Local Development
+- Runs directly with Python
+- Best for development and testing
+- Automatic virtual environment setup
+
+### Docker
+- Containerized deployment
+- Includes monitoring with Prometheus and Grafana
+- Good for production-like testing
 
 ### Kubernetes
-- Edit `replicas` in `k8s-development.yml` or `k8s-production.yml`.
-- Use `kubectl scale deployment api-dev --replicas=3` (or `api-prod`).
-- Use Kubernetes Ingress for advanced routing and SSL.
+- Scalable deployment on minikube
+- Production-ready configuration
+- Automatic port forwarding setup
 
-### Monitoring
-- Prometheus and Grafana are included for metrics and dashboards.
+## Monitoring (Docker only)
 
-## TODO
-- update k8s deployment files
+When using Docker deployment, monitoring tools are available:
+- **Prometheus**: http://localhost:9090
+- **Grafana**: http://localhost:3000 (admin/admin)
+
+## Project Structure
+
+```
+src/
+├── deploy.sh              # Main deployment script
+├── app_development.py     # Development API server
+├── app_production.py      # Production API server
+├── docker-compose.yml     # Docker configuration
+├── k8s-development.yml    # Kubernetes dev config
+├── k8s-production.yml     # Kubernetes prod config
+└── requirements.txt       # Python dependencies
+
+../model/
+├── model.pkl             # Trained ML model
+└── model_features.json   # Required features
+
+../data/
+├── zipcode_demographics.csv  # Demographics data
+└── future_unseen_examples.csv # Test examples
+```
+
+## Troubleshooting
+
+**Kubernetes issues:**
+- Ensure minikube is running: `minikube start`
+- Check pod status: `kubectl get pods`
+
+**Docker issues:**
+- Check container status: `docker-compose ps`
+- View logs: `docker-compose logs`
+
+**Local issues:**
+- Check if port 5005 is in use
+- Verify Python dependencies are installed
