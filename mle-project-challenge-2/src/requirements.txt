@@ -1,0 +1,6 @@
+flask
+flasgger
+pandas
+scikit-learn
+numpy
+pyyaml

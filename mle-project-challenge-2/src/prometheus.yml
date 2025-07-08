@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'soundrealty-api'
+    static_configs:
+      - targets: ['api-dev:5005', 'api-prod:5005']
