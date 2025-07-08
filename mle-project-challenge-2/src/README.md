@@ -99,8 +99,5 @@ cd src
 ### Monitoring
 - Prometheus and Grafana are included for metrics and dashboards.
 
-## Notes
-- All paths in configs/scripts reference `src/`.
-- Remove the old `api/` directory after verifying migration.
-- All environment, scaling, and monitoring instructions are now in this README.
-- `test_api_unified.py` is obsolete; use `test_api.py` for all endpoint tests.
+## TODO
+- update k8s deployment files
