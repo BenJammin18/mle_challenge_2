@@ -98,3 +98,6 @@ cd src
 
 ### Monitoring
 - Prometheus and Grafana are included for metrics and dashboards.
+
+## TODO
+- update k8s deployment files
