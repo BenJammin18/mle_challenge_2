@@ -14,7 +14,7 @@ def main():
     print("=" * 50)
     
     # Load data
-    data = pd.read_csv("data/kc_house_data.csv", dtype={'zipcode': str})
+    data = pd.read_csv("../data/kc_house_data.csv", dtype={'zipcode': str})
     
     # Current features in the model
     current_features = ['bedrooms', 'bathrooms', 'sqft_living', 'sqft_lot', 
@@ -32,7 +32,7 @@ def main():
             print(f"{feature:<20} {corr:.3f}")
     
     # Get available features not currently used
-    future_data = pd.read_csv("data/future_unseen_examples.csv", nrows=1)
+    future_data = pd.read_csv("../data/future_unseen_examples.csv", nrows=1)
     available_features = list(future_data.columns)
     
     unused_features = [f for f in available_features 
@@ -65,7 +65,7 @@ def main():
         'date': pd.Timestamp.now().isoformat()
     }
     
-    output_file = Path("util/feature_recommendations.json")
+    output_file = Path("./feature_recommendations.json")
     with open(output_file, 'w') as f:
         json.dump(results, f, indent=2)
     
