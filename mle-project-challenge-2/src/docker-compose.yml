@@ -9,7 +9,7 @@ services:
     environment:
       - FLASK_ENV=development
     ports:
-      - "5005:5005"
+      - "0.0.0.0:5005:5005"
 
   api-prod:
     build:
@@ -20,4 +20,25 @@ services:
     environment:
       - FLASK_ENV=production
     ports:
-      - "5005:5005"
+      - "0.0.0.0:5005:5005"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ../src/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "0.0.0.0:9090:9090"
+    depends_on:
+      - api-prod
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "0.0.0.0:3000:3000"
+    depends_on:
+      - prometheus
+    # Optionally mount provisioning/dashboards here

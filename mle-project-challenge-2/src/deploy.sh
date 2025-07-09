@@ -48,6 +48,8 @@ stop_services() {
         kubectl delete -f "$SRC_DIR/k8s-production.yml" >/dev/null 2>&1 || true
       fi
       pkill -f "kubectl port-forward.*api-${MODE}" 2>/dev/null || true
+      pkill -f "kubectl port-forward.*prometheus" 2>/dev/null || true
+      pkill -f "kubectl port-forward.*grafana" 2>/dev/null || true
       echo "Kubernetes deployment stopped"
       ;;
     local)
@@ -100,19 +102,42 @@ case "$METHOD" in
       kubectl apply -f "$SRC_DIR/k8s-development.yml" >/dev/null
     else
       kubectl apply -f "$SRC_DIR/k8s-production.yml" >/dev/null
+      # Wait for all prod pods (api, prometheus, grafana) to be ready
+      kubectl wait --for=condition=ready pod -l app=api-prod --timeout=60s >/dev/null || true
+      kubectl wait --for=condition=ready pod -l app=prometheus --timeout=60s >/dev/null || true
+      kubectl wait --for=condition=ready pod -l app=grafana --timeout=60s >/dev/null || true
+      # Port-forward all services
+      kubectl port-forward svc/api-prod 5005:5005 >/dev/null 2>&1 &
+      kubectl port-forward svc/prometheus 9090:9090 >/dev/null 2>&1 &
+      kubectl port-forward svc/grafana 3000:3000 >/dev/null 2>&1 &
     fi
-    kubectl wait --for=condition=ready pod -l app=api-${MODE} --timeout=60s >/dev/null
-    kubectl port-forward svc/api-${MODE} 5005:5005 >/dev/null 2>&1 &
     # Reset Docker context to default after k8s build
     eval $(minikube docker-env -u)
-    echo "Kubernetes deployment complete. API available at http://localhost:5005"
+    echo "Kubernetes deployment complete."
+    echo "API available at:      http://localhost:5005"
+    if [ "$MODE" = "prod" ]; then
+      echo "Prometheus available at: http://localhost:9090"
+      echo "Grafana available at:    http://localhost:3000 (admin/admin)"
+    fi
     ;;
   docker)
     # Ensure Docker context is set to Docker Desktop (not minikube)
     eval $(minikube docker-env -u)
-    SERVICE="api-$MODE"
-    docker-compose -f "$SRC_DIR/docker-compose.yml" up --build -d $SERVICE
-    echo "Docker deployment complete. API available at http://localhost:5005"
+    if [ "$MODE" = "prod" ]; then
+      docker-compose -f "$SRC_DIR/docker-compose.yml" up --build -d api-prod prometheus grafana
+      echo "Docker deployment complete."
+      echo "API available at:      http://localhost:5005"
+      echo "Prometheus available at: http://localhost:9090"
+      echo "Grafana available at:    http://localhost:3000 (admin/admin)"
+      # Ensure ports are forwarded (docker-compose already maps them, but check)
+      if ! lsof -i :5005 >/dev/null; then echo "Warning: API port 5005 not open"; fi
+      if ! lsof -i :9090 >/dev/null; then echo "Warning: Prometheus port 9090 not open"; fi
+      if ! lsof -i :3000 >/dev/null; then echo "Warning: Grafana port 3000 not open"; fi
+    else
+      SERVICE="api-$MODE"
+      docker-compose -f "$SRC_DIR/docker-compose.yml" up --build -d $SERVICE
+      echo "Docker deployment complete. API available at http://localhost:5005"
+    fi
     ;;
   local)
     cd "$SRC_DIR"
@@ -121,12 +146,21 @@ case "$METHOD" in
     if [ "$MODE" = "dev" ]; then
       script="app_development.py"
       echo "Running development server..."
+      python $script &
+      echo $! > "/tmp/soundrealty_${MODE}.pid"
+      echo "Local deployment complete. API available at http://localhost:5005"
     else
       script="app_production.py"
       echo "Running production server..."
+      python $script &
+      echo $! > "/tmp/soundrealty_${MODE}.pid"
+      echo "Local deployment complete. API available at http://localhost:5005"
+      # Start Prometheus and Grafana in Docker if not already running
+      docker-compose -f "$SRC_DIR/docker-compose.yml" up -d prometheus grafana
+      echo "Prometheus available at: http://localhost:9090"
+      echo "Grafana available at:    http://localhost:3000 (admin/admin)"
+      if ! lsof -i :9090 >/dev/null; then echo "Warning: Prometheus port 9090 not open"; fi
+      if ! lsof -i :3000 >/dev/null; then echo "Warning: Grafana port 3000 not open"; fi
     fi
-    python $script &
-    echo $! > "/tmp/soundrealty_${MODE}.pid"
-    echo "Local deployment complete. API available at http://localhost:5005"
     ;;
 esac

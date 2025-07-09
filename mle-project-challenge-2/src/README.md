@@ -98,11 +98,19 @@ Interactive documentation is available at:
 - Production-ready configuration
 - Automatic port forwarding setup
 
-## Monitoring (Docker only)
+## Monitoring (Prod only)
 
-When using Docker deployment, monitoring tools are available:
+When using prod deployment, monitoring tools are available:
 - **Prometheus**: http://localhost:9090
 - **Grafana**: http://localhost:3000 (admin/admin)
+
+## Production Features
+
+- **Full-stack monitoring**: In production mode (`./deploy.sh prod docker` or `./deploy.sh prod k8s`), Prometheus and Grafana are automatically started and integrated for metrics and dashboards.
+- **Automatic port management**: The deployment script ensures that only the processes it starts are stopped, and ports are freed up cleanly when you run `./deploy.sh prod [docker|k8s|local] stop`.
+- **Kubernetes and Docker support**: You can deploy to either Docker Compose or Minikube-based Kubernetes with a single script and consistent interface.
+- **Graceful cleanup**: Stopping a deployment will only terminate the relevant containers, port-forwards, or Python processes, without affecting unrelated services on your system.
+- **Nginx sample config**: An example `nginx.conf` is included in `src/` as a reference for reverse proxying or load balancing, but it is not used by the deployment script or containers by default. You can adapt it for your own production needs if desired.
 
 ## Project Structure
 
